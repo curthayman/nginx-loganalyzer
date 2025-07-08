@@ -30,8 +30,6 @@ See requirements.txt:
 streamlit
 pandas
 plotly
-
-streamlit
 ```
 ## Install with:
 ```
