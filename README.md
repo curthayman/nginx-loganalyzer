@@ -13,7 +13,7 @@
 - **File Types Tab:** Analyze top requested file extensions and files, with charts.
 - **Bot & Crawler Detection:** Identify bot and crawler activity, including request counts, paths, and error rates.
 - **Advanced Security Analysis:** Detect potential brute force attacks, SQL injection attempts, and XSS attacks.
-** **PHP Error Log Analysis:**
+## **PHP Error Log Analysis:**
 - View and filter PHP errors by severity (Fatal Error, Warning, Info/Notice).
 - Dropdown filter for error type in the PHP Errors tab.
 - Download PHP error logs as CSV.
@@ -80,8 +80,8 @@ streamlit run nginx_dashboard.py
 - **PHP Error Log Format:** The PHP error parser supports standard PHP error log lines. For custom formats, adjust the parse_php_error_log function.
 - **Hostname Resolution:** The dashboard attempts to resolve IPs to hostnames; this may be slow for many IPs.
 ## Troubleshooting
-If site or environment dropdowns do not populate, ensure Terminus is installed, authenticated, and in your PATH.
-If you see "No valid access logs found," check that logs were collected and are in the expected format.
-If PHP errors do not appear, ensure the php-error.log files are present in each app server directory.
-For custom log formats, update the parser as needed.
-If you have questions or want to contribute, open an issue or pull request.
+- If site or environment dropdowns do not populate, ensure Terminus is installed, authenticated, and in your PATH.
+- If you see "No valid access logs found," check that logs were collected and are in the expected format.
+- If PHP errors do not appear, ensure the php-error.log files are present in each app server directory.
+- For custom log formats, update the parser as needed.
+- If you have questions or want to contribute, open an issue or pull request.
