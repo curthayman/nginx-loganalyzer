@@ -76,9 +76,9 @@ streamlit run nginx_dashboard.py
 
 
 ## Customization
-**Log Format:** The parser is tailored for Pantheon Nginx logs with GoAccess-style formatting. If your log format differs, adjust the parse_nginx_log function.
-**PHP Error Log Format:** The PHP error parser supports standard PHP error log lines. For custom formats, adjust the parse_php_error_log function.
-**Hostname Resolution:** The dashboard attempts to resolve IPs to hostnames; this may be slow for many IPs.
+- **Log Format:** The parser is tailored for Pantheon Nginx logs with GoAccess-style formatting. If your log format differs, adjust the parse_nginx_log function.
+- **PHP Error Log Format:** The PHP error parser supports standard PHP error log lines. For custom formats, adjust the parse_php_error_log function.
+- **Hostname Resolution:** The dashboard attempts to resolve IPs to hostnames; this may be slow for many IPs.
 ## Troubleshooting
 If site or environment dropdowns do not populate, ensure Terminus is installed, authenticated, and in your PATH.
 If you see "No valid access logs found," check that logs were collected and are in the expected format.
