@@ -40,16 +40,16 @@ pip install -r requirements.txt
 ## Usage
 **Clone this repository and install requirements:**
 ```
-git clone <your-repo-url>
-cd <your-repo-directory>
+git clone https://github.com/curthayman/pantheon-loganalyzer.git
+cd pantheon-loganalyzer
 pip install -r requirements.txt
 ```
-Ensure you have Terminus installed and authenticated:
+## Ensure you have Terminus installed and authenticated:
 
 ```
 terminus auth:login
 ```
-Run the Streamlit app:
+## Run the Streamlit app:
 ```
 streamlit run nginx_dashboard.py
 ```
