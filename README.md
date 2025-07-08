@@ -33,12 +33,12 @@ plotly
 
 streamlit
 ```
-Install with:
+## Install with:
 ```
 pip install -r requirements.txt
 ```
 ## Usage
-**Clone this repository and install requirements:**
+** Clone this repository and install requirements:**
 ```
 git clone https://github.com/curthayman/pantheon-loganalyzer.git
 cd pantheon-loganalyzer
@@ -53,12 +53,12 @@ terminus auth:login
 ```
 streamlit run nginx_dashboard.py
 ```
-In the sidebar:
+## In the sidebar:
 
 Select a site and environment from the dropdowns.
 Click "Collect Logs" to fetch and analyze logs.
 
-Explore the tabs:
+## Explore the tabs:
 
 - Overview: Traffic summary and trends.
 - Requests: Top paths, status codes, user agents, IPs, referrers.
@@ -74,7 +74,5 @@ Hostname Resolution: The dashboard attempts to resolve IPs to hostnames; this ma
 If site or environment dropdowns do not populate, ensure Terminus is installed, authenticated, and in your PATH.
 If you see "No valid access logs found," check that logs were collected and are in the expected format.
 For custom log formats, update the parser as needed.
-
-Enjoy analyzing your Nginx logs!
 
 If you have questions or want to contribute, open an issue or pull request.
