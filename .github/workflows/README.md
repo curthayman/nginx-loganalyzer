@@ -1,0 +1,230 @@
+# GitHub Actions CI/CD Workflows
+
+This directory contains GitHub Actions workflows for building and pushing Docker images to multiple container registries.
+
+## Workflows
+
+### 1. `docker-dockerhub.yml` - DockerHub Publishing
+
+Builds and pushes images to DockerHub (public or private repositories).
+
+**Triggers:**
+
+- Push to `main` or `develop` branches
+- Tags matching `v*.*.*` pattern
+- Pull requests to `main`
+- Manual workflow dispatch
+
+**Required Secrets:**
+
+- `DOCKERHUB_USERNAME` - Your DockerHub username
+- `DOCKERHUB_TOKEN` - DockerHub access token (create at https://hub.docker.com/settings/security)
+
+### 2. `docker-ecr.yml` - AWS ECR Publishing
+
+Builds and pushes images to AWS Elastic Container Registry.
+
+**Triggers:**
+
+- Push to `main` or `develop` branches
+- Tags matching `v*.*.*` pattern
+- Manual workflow dispatch
+
+**Required Secrets:**
+
+**Option A: OIDC (Recommended)**
+
+- `AWS_ROLE_ARN` - ARN of the IAM role to assume (e.g., `arn:aws:iam::123456789012:role/GitHubActionsRole`)
+- `AWS_REGION` - AWS region (default: `us-east-1`)
+
+**Option B: Access Keys**
+
+- `AWS_ACCESS_KEY_ID` - AWS access key ID
+- `AWS_SECRET_ACCESS_KEY` - AWS secret access key
+- `AWS_REGION` - AWS region (default: `us-east-1`)
+- `AWS_ACCOUNT_ID` - Your AWS account ID
+
+### 3. `docker-all.yml` - Multi-Registry Publishing
+
+Builds and pushes images to both DockerHub and AWS ECR simultaneously.
+
+**Triggers:**
+
+- Push to `main` branch
+- Tags matching `v*.*.*` pattern
+- Manual workflow dispatch (can select which registries to push to)
+
+**Required Secrets:** Combination of DockerHub and AWS ECR secrets above.
+
+## Setup Instructions
+
+### DockerHub Setup
+
+1. **Create DockerHub Access Token:**
+
+   - Go to https://hub.docker.com/settings/security
+   - Click "New Access Token"
+   - Give it a descriptive name (e.g., "GitHub Actions")
+   - Save the token securely
+
+2. **Add GitHub Secrets:**
+
+   - Go to your GitHub repository → Settings → Secrets and variables → Actions
+   - Add new secrets:
+     - `DOCKERHUB_USERNAME`: Your DockerHub username
+     - `DOCKERHUB_TOKEN`: The access token from step 1
+
+3. **For Private Repositories:**
+   - The workflow will automatically push to your private DockerHub repositories
+   - Image will be: `your-username/nginx-loganalyzer:tag`
+
+### AWS ECR Setup
+
+#### Option A: OIDC Authentication (Recommended)
+
+1. **Configure AWS OIDC Provider:**
+
+   ```bash
+   aws iam create-open-id-connect-provider \
+     --url https://token.actions.githubusercontent.com \
+     --client-id-list sts.amazonaws.com \
+     --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1
+   ```
+
+2. **Create IAM Role:**
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Principal": {
+           "Federated": "arn:aws:iam::YOUR_ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+         },
+         "Action": "sts:AssumeRoleWithWebIdentity",
+         "Condition": {
+           "StringEquals": {
+             "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+           },
+           "StringLike": {
+             "token.actions.githubusercontent.com:sub": "repo:YOUR_ORG/YOUR_REPO:*"
+           }
+         }
+       }
+     ]
+   }
+   ```
+
+3. **Attach ECR Permissions Policy:**
+
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": [
+           "ecr:GetAuthorizationToken",
+           "ecr:BatchCheckLayerAvailability",
+           "ecr:GetDownloadUrlForLayer",
+           "ecr:BatchGetImage",
+           "ecr:PutImage",
+           "ecr:InitiateLayerUpload",
+           "ecr:UploadLayerPart",
+           "ecr:CompleteLayerUpload",
+           "ecr:CreateRepository",
+           "ecr:DescribeRepositories",
+           "ecr:DescribeImageScanFindings"
+         ],
+         "Resource": "*"
+       }
+     ]
+   }
+   ```
+
+4. **Add GitHub Secrets:**
+   - `AWS_ROLE_ARN`: The ARN of the role created above
+   - `AWS_REGION`: Your AWS region (e.g., `us-east-1`)
+
+#### Option B: Access Keys (Alternative)
+
+1. **Create IAM User:**
+
+   - Create a dedicated IAM user for GitHub Actions
+   - Attach the ECR permissions policy from above
+
+2. **Generate Access Keys:**
+
+   - In IAM → Users → Select user → Security credentials
+   - Create access key → Choose "Application running outside AWS"
+
+3. **Add GitHub Secrets:**
+   - `AWS_ACCESS_KEY_ID`: The access key ID
+   - `AWS_SECRET_ACCESS_KEY`: The secret access key
+   - `AWS_REGION`: Your AWS region
+   - `AWS_ACCOUNT_ID`: Your 12-digit AWS account ID
+
+## Image Tagging Strategy
+
+The workflows automatically generate tags based on:
+
+- **Branch pushes**: `main`, `develop`
+- **Semver tags**: `v1.2.3` → generates `1.2.3`, `1.2`, `1`, `latest`
+- **Pull requests**: `pr-123`
+- **Commit SHA**: `main-sha-abc1234`
+
+## Manual Workflow Trigger
+
+You can manually trigger workflows from the GitHub Actions tab:
+
+1. Go to Actions → Select workflow
+2. Click "Run workflow"
+3. Select branch and options
+4. Click "Run workflow"
+
+## Testing Locally
+
+Before pushing, test the Docker build locally:
+
+```bash
+# Build the image
+./docker-build.sh v1.0.0
+
+# Test the image
+./docker-test.sh
+```
+
+## Troubleshooting
+
+### DockerHub Issues
+
+- **Authentication failed**: Verify `DOCKERHUB_TOKEN` is valid and has write permissions
+- **Repository not found**: Ensure repository exists or is public/accessible
+
+### AWS ECR Issues
+
+- **Access denied**: Verify IAM permissions include all required ECR actions
+- **Repository not found**: The workflow auto-creates repositories, check IAM permissions
+- **OIDC trust error**: Verify the trust policy matches your repo path exactly
+
+### Build Issues
+
+- **Platform build fails**: Ensure Docker Buildx is available
+- **Cache issues**: GitHub Actions cache is automatic, but can be cleared from Settings
+
+## Best Practices
+
+1. **Always tag releases**: Use semantic versioning (`v1.2.3`) for releases
+2. **Test locally first**: Use `./docker-build.sh` and `./docker-test.sh`
+3. **Use OIDC for AWS**: More secure than long-lived access keys
+4. **Monitor image sizes**: Multi-stage builds keep images small (~630MB)
+5. **Check security scans**: AWS ECR auto-scans on push
+
+## Support
+
+For issues with:
+
+- **Workflows**: Check GitHub Actions logs
+- **DockerHub**: Visit https://hub.docker.com/
+- **AWS ECR**: Check CloudWatch logs and IAM permissions

@@ -1,0 +1,150 @@
+name: Build and Push to All Registries
+
+on:
+    push:
+        branches:
+            - main
+        tags:
+            - "v*.*.*"
+    workflow_dispatch:
+        inputs:
+            push_to_dockerhub:
+                description: "Push to DockerHub"
+                required: false
+                type: boolean
+                default: true
+            push_to_ecr:
+                description: "Push to AWS ECR"
+                required: false
+                type: boolean
+                default: true
+            version:
+                description: "Version tag (e.g., v1.0.0)"
+                required: false
+                default: "latest"
+
+env:
+    IMAGE_NAME: nginx-loganalyzer
+
+jobs:
+    build-and-push:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            packages: write
+            id-token: write
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            # DockerHub Login
+            - name: Log in to DockerHub
+              if: github.event.inputs.push_to_dockerhub != 'false'
+              uses: docker/login-action@v3
+              with:
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+            # AWS ECR Login
+            - name: Configure AWS credentials
+              if: github.event.inputs.push_to_ecr != 'false'
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+                  aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+            - name: Login to Amazon ECR
+              if: github.event.inputs.push_to_ecr != 'false'
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v2
+
+            # Metadata extraction
+            - name: Extract metadata for DockerHub
+              if: github.event.inputs.push_to_dockerhub != 'false'
+              id: meta-dockerhub
+              uses: docker/metadata-action@v5
+              with:
+                  images: |
+                      ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}
+                  tags: |
+                      type=ref,event=branch
+                      type=semver,pattern={{version}}
+                      type=semver,pattern={{major}}.{{minor}}
+                      type=semver,pattern={{major}}
+                      type=sha,prefix={{branch}}-
+                      type=raw,value=latest,enable={{is_default_branch}}
+
+            - name: Extract metadata for ECR
+              if: github.event.inputs.push_to_ecr != 'false'
+              id: meta-ecr
+              uses: docker/metadata-action@v5
+              with:
+                  images: |
+                      ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}
+                  tags: |
+                      type=ref,event=branch
+                      type=semver,pattern={{version}}
+                      type=semver,pattern={{major}}.{{minor}}
+                      type=semver,pattern={{major}}
+                      type=sha,prefix={{branch}}-
+                      type=raw,value=latest,enable={{is_default_branch}}
+
+            # Combine tags from both registries
+            - name: Combine tags
+              id: combined-tags
+              run: |
+                  TAGS=""
+                  if [ "${{ github.event.inputs.push_to_dockerhub }}" != "false" ]; then
+                    TAGS="${{ steps.meta-dockerhub.outputs.tags }}"
+                  fi
+                  if [ "${{ github.event.inputs.push_to_ecr }}" != "false" ]; then
+                    if [ -n "$TAGS" ]; then
+                      TAGS="${TAGS}"$'\n'"${{ steps.meta-ecr.outputs.tags }}"
+                    else
+                      TAGS="${{ steps.meta-ecr.outputs.tags }}"
+                    fi
+                  fi
+                  echo "tags<<EOF" >> $GITHUB_OUTPUT
+                  echo "$TAGS" >> $GITHUB_OUTPUT
+                  echo "EOF" >> $GITHUB_OUTPUT
+
+            # Build and push to all registries
+            - name: Build and push Docker image
+              uses: docker/build-push-action@v5
+              with:
+                  context: .
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  tags: ${{ steps.combined-tags.outputs.tags }}
+                  labels: ${{ steps.meta-dockerhub.outputs.labels || steps.meta-ecr.outputs.labels }}
+                  cache-from: type=gha
+                  cache-to: type=gha,mode=max
+
+            # Create deployment summary
+            - name: Create deployment summary
+              run: |
+                  echo "## 🐳 Docker Images Published" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+
+                  if [ "${{ github.event.inputs.push_to_dockerhub }}" != "false" ]; then
+                    echo "### DockerHub" >> $GITHUB_STEP_SUMMARY
+                    echo "**Image:** \`${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+                    echo '```bash' >> $GITHUB_STEP_SUMMARY
+                    echo "docker pull ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+                    echo '```' >> $GITHUB_STEP_SUMMARY
+                    echo "" >> $GITHUB_STEP_SUMMARY
+                  fi
+
+                  if [ "${{ github.event.inputs.push_to_ecr }}" != "false" ]; then
+                    echo "### AWS ECR" >> $GITHUB_STEP_SUMMARY
+                    echo "**Image:** \`${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+                    echo "**Region:** ${{ secrets.AWS_REGION || 'us-east-1' }}" >> $GITHUB_STEP_SUMMARY
+                    echo '```bash' >> $GITHUB_STEP_SUMMARY
+                    echo "aws ecr get-login-password --region ${{ secrets.AWS_REGION || 'us-east-1' }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_STEP_SUMMARY
+                    echo "docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+                    echo '```' >> $GITHUB_STEP_SUMMARY
+                  fi

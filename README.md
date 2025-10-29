@@ -16,20 +16,20 @@
 - **File Types Tab:** Analyze top requested file extensions and files, with charts.
 - **Bot & Crawler Detection:** Identify bot and crawler activity, including request counts, paths, and error rates.
 - **Advanced Security Analysis:**
-    - Detects potential brute force attacks.
-    - Detects potential SQL injection attempts.
-    - Detects potential XSS attacks.
-    - **AbuseIPDB Integration:** Check IPs with high error rates against the AbuseIPDB database.
+  - Detects potential brute force attacks.
+  - Detects potential SQL injection attempts.
+  - Detects potential XSS attacks.
+  - **AbuseIPDB Integration:** Check IPs with high error rates against the AbuseIPDB database.
 - **PHP Error Log Analysis:**
-    - View and filter PHP errors by severity (Fatal Error, Warning, Info/Notice).
-    - Dropdown filter for error type in the PHP Errors tab.
-    - Download PHP error logs as CSV.
+  - View and filter PHP errors by severity (Fatal Error, Warning, Info/Notice).
+  - Dropdown filter for error type in the PHP Errors tab.
+  - Download PHP error logs as CSV.
 - **Downloadable Reports:**
-    - Export all log data as CSV.
-    - Generate detailed HTML reports using `goaccess`.
+  - Export all log data as CSV.
+  - Generate detailed HTML reports using `goaccess`.
 - **Standalone Nginx Dashboard:**
-    - A separate dashboard to quickly analyze a single Nginx log file.
-    - Run with `streamlit run main.py`.
+  - A separate dashboard to quickly analyze a single Nginx log file.
+  - Run with `streamlit run main.py`.
 
 ## Requirements
 
@@ -58,20 +58,107 @@ pip install -r requirements.txt
 
 ## Usage
 
-1.  **Clone this repository and install requirements:**
-    ```
+### Option 1: Local Development
+
+1.  **Clone this repository:**
+
+    ```bash
     git clone https://github.com/curthayman/nginx-loganalyzer.git
     cd nginx-loganalyzer
+    ```
+
+2.  **Set up virtual environment (recommended):**
+
+    ```bash
+    ./setup-dev.sh
+    # Or manually:
+    python3 -m venv venv
+    source venv/bin/activate
     pip install -r requirements.txt
     ```
-2.  **Ensure you have Terminus installed and authenticated:**
-    ```
+
+3.  **Ensure you have Terminus installed and authenticated:**
+
+    ```bash
     terminus auth:login
     ```
-3.  **Run the Streamlit app:**
-    ```
+
+4.  **Run the Streamlit app:**
+    ```bash
     streamlit run main.py
     ```
+
+### Option 2: Docker Deployment
+
+1.  **Pull from DockerHub:**
+
+    ```bash
+    docker pull curthayman/nginx-loganalyzer:latest
+    ```
+
+2.  **Run the container:**
+
+    ```bash
+    docker run -d \
+      -p 8501:8501 \
+      -v ~/.ssh:/home/appuser/.ssh:ro \
+      -v ~/site-logs:/home/appuser/site-logs \
+      --name nginx-loganalyzer \
+      curthayman/nginx-loganalyzer:latest
+    ```
+
+3.  **Access the application:**
+    Open http://localhost:8501 in your browser
+
+### Option 3: Build from Source
+
+1.  **Clone and build:**
+
+    ```bash
+    git clone https://github.com/curthayman/nginx-loganalyzer.git
+    cd nginx-loganalyzer
+    ./docker-build.sh v1.0.0
+    ```
+
+2.  **Run locally built image:**
+    ```bash
+    docker run -d -p 8501:8501 nginx-loganalyzer:latest
+    ```
+
+### Option 4: Docker Compose with Traefik (Production)
+
+1.  **Copy files to your server:**
+
+    ```bash
+    git clone https://github.com/curthayman/nginx-loganalyzer.git
+    cd nginx-loganalyzer
+    ```
+
+2.  **Configure environment:**
+
+    ```bash
+    cp .env.example .env
+    nano .env  # Set HOSTNAME to your domain
+    ```
+
+3.  **Run automated setup:**
+
+    ```bash
+    ./docker-deploy.sh
+    ```
+
+    Or manually:
+
+    ```bash
+    docker network create proxy  # If not exists
+    docker compose pull
+    docker compose up -d
+    ```
+
+4.  **Access via your domain:**
+    Open https://your-hostname.com
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed production deployment guide.
 
 ## In the sidebar:
 
@@ -90,9 +177,9 @@ pip install -r requirements.txt
 - **Bot & Crawler Detection:** Bot and crawler activity breakdown.
 - **Advanced Security:** Brute force, SQLi, XSS detection, and AbuseIPDB checks.
 - **PHP Errors:**
-    - View all PHP errors from all app servers.
-    - Filter by Fatal Error, Warning, or Info (Notice) using the dropdown.
-    - Download filtered PHP error logs as CSV.
+  - View all PHP errors from all app servers.
+  - Filter by Fatal Error, Warning, or Info (Notice) using the dropdown.
+  - Download filtered PHP error logs as CSV.
 
 ## Customization
 
@@ -107,3 +194,57 @@ pip install -r requirements.txt
 - If PHP errors do not appear, ensure the `php-error.log` files are present in each app server directory.
 - For custom log formats, update the parser as needed.
 - If you have questions or want to contribute, open an issue or pull request.
+
+## CI/CD and Docker
+
+This project includes automated CI/CD workflows for building and publishing Docker images:
+
+- **DockerHub**: Automatically publishes to DockerHub on tagged releases
+- **AWS ECR**: Supports publishing to private AWS ECR repositories
+- **Multi-platform**: Builds for both `linux/amd64` and `linux/arm64`
+
+See [.github/workflows/README.md](.github/workflows/README.md) for setup instructions.
+
+### Available Docker Images
+
+- **DockerHub**: `curthayman/nginx-loganalyzer:latest`
+- **AWS ECR**: Configure your own private registry
+
+### Building Locally
+
+```bash
+# Quick build
+./docker-build.sh
+
+# Build with version tag
+./docker-build.sh v1.0.0
+
+# Test the build
+./docker-test.sh
+```
+
+## Development
+
+### Project Structure
+
+```
+.
+├── main.py              # Main Streamlit application
+├── log_parser.py        # Log parsing functions
+├── analysis.py          # Security analysis functions
+├── terminus.py          # Pantheon/Terminus integration
+├── ui.py               # External tool integration (GoAccess)
+├── requirements.txt     # Python dependencies
+├── Dockerfile          # Container definition
+├── docker-compose.yml  # Docker Compose configuration
+└── .github/
+    └── workflows/      # GitHub Actions CI/CD
+```
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Commit your changes: `git commit -am 'Add new feature'`
+4. Push to the branch: `git push origin feature/my-feature`
+5. Submit a pull request
