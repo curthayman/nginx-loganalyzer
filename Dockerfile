@@ -21,7 +21,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dnsutils \
     openssh-client \
     goaccess \
+    curl \
+    php-cli \
+    php-xml \
+    php-curl \
+    php-mbstring \
+    git \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Terminus CLI V4
+RUN curl -L https://github.com/pantheon-systems/terminus/releases/latest/download/terminus.phar -o /usr/local/bin/terminus \
+    && chmod +x /usr/local/bin/terminus
 
 # Create non-root user
 RUN useradd -m -u 1000 -s /bin/bash appuser
@@ -34,6 +44,9 @@ COPY --from=builder /root/.local /home/appuser/.local
 
 # Copy application code
 COPY --chown=appuser:appuser . .
+
+# Make startup script executable
+RUN chmod +x startup.sh
 
 # Create directories for logs and SSH keys
 RUN mkdir -p /home/appuser/site-logs /home/appuser/.ssh && \
@@ -58,5 +71,5 @@ ENV STREAMLIT_SERVER_ADDRESS=0.0.0.0
 ENV STREAMLIT_SERVER_HEADLESS=true
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
-# Run the application
-CMD ["streamlit", "run", "main.py", "--server.address=0.0.0.0"]
+# Run the application with startup script
+CMD ["./startup.sh"]
