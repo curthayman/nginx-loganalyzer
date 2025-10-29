@@ -35,6 +35,7 @@ See requirements.txt:
 streamlit
 pandas
 plotly
+requests
 ```
 ## Install with:
 
