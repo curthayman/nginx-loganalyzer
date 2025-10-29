@@ -34,7 +34,7 @@
 ## Requirements
 
 - Python 3.8+
-- Terminus CLI (for Pantheon integration)
+- [Terminus CLI](https://docs.pantheon.io/terminus/install) (for Pantheon integration)
 - `dig` (for DNS lookups)
 - SFTP access to Pantheon app servers
 - `goaccess` (for generating HTML reports)
