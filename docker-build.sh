@@ -28,7 +28,8 @@ echo -e "${YELLOW}📦 Building Docker image...${NC}"
 docker build \
     -t ${IMAGE_NAME}:${VERSION} \
     -t ${IMAGE_NAME}:latest \
-    .
+    . \
+    --progress=plain
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Build completed successfully!${NC}"

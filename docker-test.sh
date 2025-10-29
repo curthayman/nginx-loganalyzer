@@ -7,7 +7,7 @@ echo "🐳 Testing Nginx Log Analyzer Docker container..."
 
 # Build the image
 echo "📦 Building Docker image..."
-docker build -t nginx-loganalyzer:test .
+docker build -t nginx-loganalyzer:test . --progress=plain
 
 # Check if container from previous test is running
 if docker ps -a | grep -q nginx-loganalyzer-test; then
