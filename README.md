@@ -44,8 +44,8 @@ pip install -r requirements.txt
 ## Usage
 Clone this repository and install requirements:
 ```
-git clone https://github.com/curthayman/pantheon-loganalyzer.git
-cd pantheon-loganalyzer
+git clone https://github.com/curthayman/nginx-loganalyzer.git
+cd nginx-loganalyzer
 pip install -r requirements.txt
 ```
 Ensure you have Terminus installed and authenticated:
