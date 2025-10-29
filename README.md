@@ -54,7 +54,7 @@ terminus auth:login
 ```
 Run the Streamlit app:
 ```
-streamlit run nginx_dashboard.py
+streamlit run main.py
 ```
 ## In the sidebar:
 - Select a site and environment from the dropdowns.
