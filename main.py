@@ -49,7 +49,7 @@ with st.sidebar:
     else:
         env = st.text_input("Environment (manual entry)")
 
-    st.session_state['abuseipdb_api_key'] = st.text_input("AbuseIPDB API Key (Optional)", type="password")
+    st.session_state['abuseipdb_api_key'] = st.text_input("AbuseIPDB API Key (Optional)", type="password", help="Get your API key at https://www.abuseipdb.com/register")
 
     log_container = st.container()
 
