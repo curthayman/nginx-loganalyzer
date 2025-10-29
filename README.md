@@ -37,7 +37,7 @@
 - [Terminus CLI](https://docs.pantheon.io/terminus/install) (for Pantheon integration)
 - `dig` (for DNS lookups)
 - SFTP access to Pantheon app servers
-- `[goaccess](https://goaccess.io/download)` (for generating HTML reports)
+- [goaccess](https://goaccess.io/download) (for generating HTML reports)
 
 ## Python packages
 
