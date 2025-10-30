@@ -210,6 +210,27 @@ See [.github/workflows/README.md](.github/workflows/README.md) for setup instruc
 - **DockerHub**: `curthayman/nginx-loganalyzer:latest`
 - **AWS ECR**: Configure your own private registry
 
+### AWS ECR Setup
+
+For private AWS ECR deployment, use the included setup script:
+
+```bash
+# Set your AWS region
+export AWS_REGION=us-east-1
+
+# Run the ECR setup script
+./setup-ecr.sh
+```
+
+This script will:
+
+- Create the ECR repository with security scanning enabled
+- Generate a restrictive IAM policy for repository-specific access
+- Set up lifecycle policies to manage image retention
+- Provide next steps for GitHub Actions integration
+
+The generated IAM policy follows the principle of least privilege, granting only the minimum permissions needed for the nginx-loganalyzer repository.
+
 ### Building Locally
 
 ```bash

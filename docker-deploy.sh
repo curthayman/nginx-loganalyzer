@@ -67,6 +67,24 @@ if [ -f .env ]; then
     fi
     echo -e "${GREEN}✓${NC} HOSTNAME is configured: $HOSTNAME"
     
+    # Check image registry configuration
+    PROFILE="${COMPOSE_PROFILES:-dockerhub}"
+    echo -e "${BLUE}Image source: $PROFILE${NC}"
+    
+    if [ "$PROFILE" = "ecr" ]; then
+        if [ -z "$ECR_REGISTRY" ]; then
+            echo -e "${RED}❌ ECR_REGISTRY not configured in .env${NC}"
+            echo "Please set ECR_REGISTRY to your AWS ECR registry URL"
+            echo "Example: 123456789012.dkr.ecr.us-east-1.amazonaws.com"
+            exit 1
+        fi
+        echo -e "${GREEN}✓${NC} ECR_REGISTRY is configured: $ECR_REGISTRY"
+        echo -e "${YELLOW}⚠${NC}  Make sure you're authenticated with ECR:"
+        echo "  aws ecr get-login-password --region {region} | docker login --username AWS --password-stdin $ECR_REGISTRY"
+    else
+        echo -e "${GREEN}✓${NC} Using DockerHub public image"
+    fi
+    
     # Check DNS
     echo -e "${BLUE}Checking DNS for $HOSTNAME...${NC}"
     if command -v dig &> /dev/null; then

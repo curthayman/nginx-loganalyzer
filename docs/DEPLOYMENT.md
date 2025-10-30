@@ -83,6 +83,63 @@ Traefik will automatically:
 
 ## Configuration Options
 
+### Image Registry Selection
+
+The deployment supports two image sources:
+
+#### DockerHub (Public - Default)
+
+Pull from the public DockerHub repository:
+
+```bash
+# In .env
+COMPOSE_PROFILES=dockerhub
+DOCKERHUB_IMAGE=curthayman/nginx-loganalyzer
+DOCKERHUB_TAG=latest
+```
+
+Deploy:
+
+```bash
+docker compose --profile dockerhub up -d
+# Or if COMPOSE_PROFILES is set in .env:
+docker compose up -d
+```
+
+#### AWS ECR (Private)
+
+Pull from your private AWS ECR repository:
+
+```bash
+# In .env
+COMPOSE_PROFILES=ecr
+ECR_REGISTRY=123456789012.dkr.ecr.us-east-1.amazonaws.com
+ECR_IMAGE=nginx-loganalyzer
+ECR_TAG=latest
+```
+
+Authenticate with ECR:
+
+```bash
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin 123456789012.dkr.ecr.us-east-1.amazonaws.com
+```
+
+Deploy:
+
+```bash
+docker compose --profile ecr up -d
+# Or if COMPOSE_PROFILES is set in .env:
+docker compose up -d
+```
+
+**Note:** To setup your own ECR repository, use the included setup script:
+
+```bash
+export AWS_REGION=us-east-1
+./setup-ecr.sh
+```
+
 ### Basic Authentication
 
 To add password protection:

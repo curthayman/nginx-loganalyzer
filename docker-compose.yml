@@ -1,11 +1,32 @@
+# Nginx Log Analyzer - Docker Compose Configuration
+#
+# This compose file supports two image sources:
+#   1. DockerHub (public) - Default profile
+#   2. AWS ECR (private) - ECR profile
+#
+# Usage:
+#   DockerHub: docker compose --profile dockerhub up -d
+#   AWS ECR:   docker compose --profile ecr up -d
+#
+# Or set COMPOSE_PROFILES in .env:
+#   COMPOSE_PROFILES=dockerhub  (default)
+#   COMPOSE_PROFILES=ecr        (for AWS ECR)
+#
+# For AWS ECR, you must authenticate Docker first:
+#   aws ecr get-login-password --region us-east-1 | \
+#     docker login --username AWS --password-stdin {ECR_REGISTRY}
+
 services:
+  # DockerHub image configuration (default)
   nginx-loganalyzer:
-    image: curthayman/nginx-loganalyzer:latest
+    image: ${DOCKERHUB_IMAGE:-curthayman/nginx-loganalyzer}:${DOCKERHUB_TAG:-latest}
     container_name: nginx-loganalyzer
     restart: unless-stopped
+    profiles:
+      - dockerhub
 
     # Environment variables
-    environment:
+    environment: &common-env
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
       - STREAMLIT_SERVER_HEADLESS=true
@@ -13,8 +34,7 @@ services:
       - MACHINE_TOKEN=${MACHINE_TOKEN}
 
     # Volumes for persistence
-    volumes:
-      # SSH keys for SFTP access to Pantheon (read-only)
+    volumes: &common-volumes # SSH keys for SFTP access to Pantheon (read-only)
       - ${SSH_KEY_PATH:-~/.ssh}:/home/appuser/.ssh:ro
       # Log storage directory
       - ${LOGS_DIR:-./site-logs}:/home/appuser/site-logs
@@ -22,12 +42,11 @@ services:
       # - ./custom-config.toml:/home/appuser/.streamlit/config.toml:ro
 
     # Networks
-    networks:
+    networks: &common-networks
       - proxy
 
     # Traefik labels for automatic routing and SSL
-    labels:
-      # Enable Traefik for this container
+    labels: &common-labels # Enable Traefik for this container
       - "traefik.enable=true"
 
       # Docker network to use
@@ -61,7 +80,7 @@ services:
       # - "traefik.http.middlewares.ratelimit.ratelimit.burst=50"
 
     # Health check
-    healthcheck:
+    healthcheck: &common-healthcheck
       test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
       interval: 30s
       timeout: 10s
@@ -69,7 +88,7 @@ services:
       start_period: 40s
 
     # Resource limits (adjust based on your needs)
-    deploy:
+    deploy: &common-deploy
       resources:
         limits:
           cpus: "2"
@@ -77,6 +96,20 @@ services:
         reservations:
           cpus: "0.5"
           memory: 512M
+
+  # AWS ECR image configuration
+  nginx-loganalyzer-ecr:
+    image: ${ECR_REGISTRY}/${ECR_IMAGE:-nginx-loganalyzer}:${ECR_TAG:-latest}
+    container_name: nginx-loganalyzer
+    restart: unless-stopped
+    profiles:
+      - ecr
+    environment: *common-env
+    volumes: *common-volumes
+    networks: *common-networks
+    labels: *common-labels
+    healthcheck: *common-healthcheck
+    deploy: *common-deploy
 
 # External network managed by Traefik
 networks:
