@@ -1,123 +1,123 @@
 name: Build and Push to AWS ECR
 
 on:
-    push:
-        branches:
-            - main
-            - develop
-        tags:
-            - "v*.*.*"
-    workflow_dispatch:
-        inputs:
-            version:
-                description: "Version tag (e.g., v1.0.0)"
-                required: false
-                default: "latest"
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag (e.g., v1.0.0)"
+        required: false
+        default: "latest"
 
 env:
-    IMAGE_NAME: nginx-loganalyzer
-    AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
-    ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION || 'us-east-1' }}.amazonaws.com
+  IMAGE_NAME: nginx-loganalyzer
+  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION || 'us-east-1' }}.amazonaws.com
 
 jobs:
-    build-and-push-ecr:
-        runs-on: ubuntu-latest
-        permissions:
-            contents: read
-            id-token: write # Required for OIDC authentication
+  build-and-push-ecr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for OIDC authentication
 
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-            - name: Configure AWS credentials
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                  # Option 1: Use OIDC (recommended)
-                  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-                  aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
-                  # Option 2: Use access keys (uncomment if not using OIDC)
-                  # aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                  # aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          # Option 1: Use OIDC (recommended)
+          # role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          # aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          # Option 2: Use access keys (uncomment if not using OIDC)
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-            - name: Login to Amazon ECR
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-            - name: Set up Docker Buildx
-              uses: docker/setup-buildx-action@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-            - name: Extract metadata (tags, labels)
-              id: meta
-              uses: docker/metadata-action@v5
-              with:
-                  images: |
-                      ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}
-                  tags: |
-                      type=ref,event=branch
-                      type=semver,pattern={{version}}
-                      type=semver,pattern={{major}}.{{minor}}
-                      type=semver,pattern={{major}}
-                      type=sha,prefix={{branch}}-
-                      type=raw,value=latest,enable={{is_default_branch}}
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
 
-            - name: Check if ECR repository exists
-              id: check-repo
-              continue-on-error: true
-              run: |
-                  aws ecr describe-repositories --repository-names ${{ env.IMAGE_NAME }} --region ${{ secrets.AWS_REGION || 'us-east-1' }}
+      - name: Check if ECR repository exists
+        id: check-repo
+        continue-on-error: true
+        run: |
+          aws ecr describe-repositories --repository-names ${{ env.IMAGE_NAME }} --region ${{ secrets.AWS_REGION || 'us-east-1' }}
 
-            - name: Create ECR repository if it doesn't exist
-              if: steps.check-repo.outcome == 'failure'
-              run: |
-                  aws ecr create-repository \
-                    --repository-name ${{ env.IMAGE_NAME }} \
-                    --region ${{ secrets.AWS_REGION || 'us-east-1' }} \
-                    --image-scanning-configuration scanOnPush=true \
-                    --encryption-configuration encryptionType=AES256
+      - name: Create ECR repository if it doesn't exist
+        if: steps.check-repo.outcome == 'failure'
+        run: |
+          aws ecr create-repository \
+            --repository-name ${{ env.IMAGE_NAME }} \
+            --region ${{ secrets.AWS_REGION || 'us-east-1' }} \
+            --image-scanning-configuration scanOnPush=true \
+            --encryption-configuration encryptionType=AES256
 
-            - name: Build and push Docker image to ECR
-              uses: docker/build-push-action@v5
-              with:
-                  context: .
-                  platforms: linux/amd64,linux/arm64
-                  push: true
-                  tags: ${{ steps.meta.outputs.tags }}
-                  labels: ${{ steps.meta.outputs.labels }}
-                  cache-from: type=gha
-                  cache-to: type=gha,mode=max
+      - name: Build and push Docker image to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-            - name: Scan image for vulnerabilities
-              continue-on-error: true
-              run: |
-                  # Get the image digest
-                  IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1)
+      - name: Scan image for vulnerabilities
+        continue-on-error: true
+        run: |
+          # Get the image digest
+          IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n 1)
 
-                  # Wait for scan to complete
-                  echo "Waiting for image scan to complete..."
-                  sleep 30
+          # Wait for scan to complete
+          echo "Waiting for image scan to complete..."
+          sleep 30
 
-                  # Get scan findings
-                  aws ecr describe-image-scan-findings \
-                    --repository-name ${{ env.IMAGE_NAME }} \
-                    --image-id imageTag=latest \
-                    --region ${{ secrets.AWS_REGION || 'us-east-1' }} || echo "Scan not yet complete"
+          # Get scan findings
+          aws ecr describe-image-scan-findings \
+            --repository-name ${{ env.IMAGE_NAME }} \
+            --image-id imageTag=latest \
+            --region ${{ secrets.AWS_REGION || 'us-east-1' }} || echo "Scan not yet complete"
 
-            - name: Create deployment summary
-              run: |
-                  echo "## 🐳 Docker Image Published to AWS ECR" >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "**Repository:** AWS ECR" >> $GITHUB_STEP_SUMMARY
-                  echo "**Region:** ${{ secrets.AWS_REGION || 'us-east-1' }}" >> $GITHUB_STEP_SUMMARY
-                  echo "**Image:** \`${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "### Tags" >> $GITHUB_STEP_SUMMARY
-                  echo '```' >> $GITHUB_STEP_SUMMARY
-                  echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
-                  echo '```' >> $GITHUB_STEP_SUMMARY
-                  echo "" >> $GITHUB_STEP_SUMMARY
-                  echo "### Pull command" >> $GITHUB_STEP_SUMMARY
-                  echo '```bash' >> $GITHUB_STEP_SUMMARY
-                  echo "aws ecr get-login-password --region ${{ secrets.AWS_REGION || 'us-east-1' }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_STEP_SUMMARY
-                  echo "docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
-                  echo '```' >> $GITHUB_STEP_SUMMARY
+      - name: Create deployment summary
+        run: |
+          echo "## 🐳 Docker Image Published to AWS ECR" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** AWS ECR" >> $GITHUB_STEP_SUMMARY
+          echo "**Region:** ${{ secrets.AWS_REGION || 'us-east-1' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Tags" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pull command" >> $GITHUB_STEP_SUMMARY
+          echo '```bash' >> $GITHUB_STEP_SUMMARY
+          echo "aws ecr get-login-password --region ${{ secrets.AWS_REGION || 'us-east-1' }} | docker login --username AWS --password-stdin ${{ steps.login-ecr.outputs.registry }}" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ steps.login-ecr.outputs.registry }}/${{ env.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
