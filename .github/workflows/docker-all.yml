@@ -25,6 +25,7 @@ on:
 
 env:
   IMAGE_NAME: nginx-loganalyzer
+  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
 jobs:
   build-and-push:
@@ -54,10 +55,13 @@ jobs:
         if: github.event.inputs.push_to_ecr != 'false'
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          #  role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          #  aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          # Option 1: Use OIDC (recommended)
+          # role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          # aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          # Option 2: Use access keys
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
       - name: Login to Amazon ECR
         if: github.event.inputs.push_to_ecr != 'false'
