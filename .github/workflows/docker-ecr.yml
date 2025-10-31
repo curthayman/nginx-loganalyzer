@@ -61,21 +61,6 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Check if ECR repository exists
-        id: check-repo
-        continue-on-error: true
-        run: |
-          aws ecr describe-repositories --repository-names ${{ env.IMAGE_NAME }} --region ${{ secrets.AWS_REGION || 'us-east-1' }}
-
-      - name: Create ECR repository if it doesn't exist
-        if: steps.check-repo.outcome == 'failure'
-        run: |
-          aws ecr create-repository \
-            --repository-name ${{ env.IMAGE_NAME }} \
-            --region ${{ secrets.AWS_REGION || 'us-east-1' }} \
-            --image-scanning-configuration scanOnPush=true \
-            --encryption-configuration encryptionType=AES256
-
       - name: Build and push Docker image to ECR
         uses: docker/build-push-action@v5
         with:
