@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs and data
+site-logs/
+*.log
+
+# Documentation
+README.md
+setup-dev.sh
+docs/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Development files
+nginx_dashboard.py

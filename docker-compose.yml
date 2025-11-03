@@ -1,0 +1,118 @@
+# Nginx Log Analyzer - Docker Compose Configuration
+#
+# This compose file supports two image sources:
+#   1. DockerHub (public) - Default profile
+#   2. AWS ECR (private) - ECR profile
+#
+# Usage:
+#   DockerHub: docker compose --profile dockerhub up -d
+#   AWS ECR:   docker compose --profile ecr up -d
+#
+# Or set COMPOSE_PROFILES in .env:
+#   COMPOSE_PROFILES=dockerhub  (default)
+#   COMPOSE_PROFILES=ecr        (for AWS ECR)
+#
+# For AWS ECR, you must authenticate Docker first:
+#   aws ecr get-login-password --region us-east-1 | \
+#     docker login --username AWS --password-stdin {ECR_REGISTRY}
+
+services:
+  # DockerHub image configuration (default)
+  nginx-loganalyzer:
+    image: ${DOCKERHUB_IMAGE:-curthayman/nginx-loganalyzer}:${DOCKERHUB_TAG:-latest}
+    container_name: nginx-loganalyzer
+    restart: unless-stopped
+    profiles:
+      - dockerhub
+
+    # Environment variables
+    environment: &common-env
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+      - MACHINE_TOKEN=${MACHINE_TOKEN}
+
+    # Volumes for persistence
+    volumes: &common-volumes # SSH keys for SFTP access to Pantheon (read-only)
+      - ${SSH_KEY_PATH:-~/.ssh}:/home/appuser/.ssh:ro
+      # Log storage directory
+      - ${LOGS_DIR:-./site-logs}:/home/appuser/site-logs
+      # Optional: Custom Streamlit config
+      # - ./custom-config.toml:/home/appuser/.streamlit/config.toml:ro
+
+    # Networks
+    networks: &common-networks
+      - proxy
+
+    # Traefik labels for automatic routing and SSL
+    labels: &common-labels # Enable Traefik for this container
+      - "traefik.enable=true"
+
+      # Docker network to use
+      - "traefik.docker.network=proxy"
+
+      # HTTP Router
+      - "traefik.http.routers.nginx-loganalyzer.rule=Host(`${HOSTNAME}`)"
+      - "traefik.http.routers.nginx-loganalyzer.entrypoints=websecure"
+      - "traefik.http.routers.nginx-loganalyzer.tls=true"
+      - "traefik.http.routers.nginx-loganalyzer.tls.certresolver=${CERT_RESOLVER:-letsencrypt}"
+
+      # Service configuration
+      - "traefik.http.services.nginx-loganalyzer.loadbalancer.server.port=8501"
+
+      # Optional: HTTP to HTTPS redirect
+      - "traefik.http.routers.nginx-loganalyzer-http.rule=Host(`${HOSTNAME}`)"
+      - "traefik.http.routers.nginx-loganalyzer-http.entrypoints=web"
+      - "traefik.http.routers.nginx-loganalyzer-http.middlewares=https-redirect"
+
+      # HTTPS redirect middleware
+      - "traefik.http.middlewares.https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.https-redirect.redirectscheme.permanent=true"
+
+      # Optional: Basic Auth (uncomment and configure if needed)
+      # - "traefik.http.routers.nginx-loganalyzer.middlewares=auth"
+      # - "traefik.http.middlewares.auth.basicauth.users=${BASIC_AUTH_USERS}"
+
+      # Optional: Rate limiting
+      # - "traefik.http.routers.nginx-loganalyzer.middlewares=ratelimit"
+      # - "traefik.http.middlewares.ratelimit.ratelimit.average=100"
+      # - "traefik.http.middlewares.ratelimit.ratelimit.burst=50"
+
+    # Health check
+    healthcheck: &common-healthcheck
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    # Resource limits (adjust based on your needs)
+    deploy: &common-deploy
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  # AWS ECR image configuration
+  nginx-loganalyzer-ecr:
+    image: ${ECR_REGISTRY}/${ECR_IMAGE:-nginx-loganalyzer}:${ECR_TAG:-latest}
+    container_name: nginx-loganalyzer
+    restart: unless-stopped
+    profiles:
+      - ecr
+    environment: *common-env
+    volumes: *common-volumes
+    networks: *common-networks
+    labels: *common-labels
+    healthcheck: *common-healthcheck
+    deploy: *common-deploy
+
+# External network managed by Traefik
+networks:
+  proxy:
+    external: true
+    name: proxy
