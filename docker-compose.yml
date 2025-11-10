@@ -49,6 +49,9 @@ services:
     labels: &common-labels # Enable Traefik for this container
       - "traefik.enable=true"
 
+      # Enable Watchtower monitoring
+      - "com.centurylinklabs.watchtower.enable=true"
+
       # Docker network to use
       - "traefik.docker.network=proxy"
 
@@ -110,6 +113,56 @@ services:
     labels: *common-labels
     healthcheck: *common-healthcheck
     deploy: *common-deploy
+
+  # Watchtower - Automatic container updates (DockerHub profile)
+  watchtower-dockerhub:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    profiles:
+      - dockerhub
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=600 # Check every 10 minutes (600 seconds)
+      - WATCHTOWER_CLEANUP=true # Remove old images
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_ROLLING_RESTART=true
+      - WATCHTOWER_MONITOR_ONLY=false # Automatic updates enabled
+      # - WATCHTOWER_NOTIFICATIONS=log # Log-only notifications
+      - WATCHTOWER_LABEL_ENABLE=true # Only monitor containers with label
+      - WATCHTOWER_KEEP_IMAGETAGS=5 # Keep last 5 image tags
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - proxy
+
+  # Watchtower - Automatic container updates (ECR profile)
+  watchtower-ecr:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    profiles:
+      - ecr
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=600 # Check every 10 minutes (600 seconds)
+      - WATCHTOWER_CLEANUP=true # Remove old images
+      - WATCHTOWER_INCLUDE_STOPPED=false
+      - WATCHTOWER_REVIVE_STOPPED=false
+      - WATCHTOWER_ROLLING_RESTART=true
+      - WATCHTOWER_MONITOR_ONLY=false # Automatic updates enabled
+      # - WATCHTOWER_NOTIFICATIONS=log # Log-only notifications
+      - WATCHTOWER_LABEL_ENABLE=true # Only monitor containers with label
+      - WATCHTOWER_KEEP_IMAGETAGS=5 # Keep last 5 image tags
+      # ECR authentication (uses AWS credentials from host)
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Optional: Mount AWS credentials if not using env vars
+      # - ~/.aws:/home/watchtower/.aws:ro
+    networks:
+      - proxy
 
 # External network managed by Traefik
 networks:

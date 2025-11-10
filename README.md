@@ -158,7 +158,25 @@ pip install -r requirements.txt
 4.  **Access via your domain:**
     Open https://your-hostname.com
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed production deployment guide.
+See [DEPLOYMENT.md](./docs/DEPLOYMENT.md) for detailed production deployment guide.
+
+## Automatic Updates with Watchtower
+
+The docker-compose setup includes Watchtower for automatic container updates:
+
+- **Monitors**: Your configured registry (DockerHub or ECR)
+- **Check Interval**: Every 10 minutes
+- **Auto-update**: Pulls and restarts with new images automatically
+- **Rollback Support**: Keeps last 5 image versions
+- **Logs**: View activity with `docker logs watchtower`
+
+For configuration details, rollback procedures, and troubleshooting, see [docs/WATCHTOWER.md](./docs/WATCHTOWER.md).
+
+To disable automatic updates:
+
+```bash
+docker stop watchtower
+```
 
 ## In the sidebar:
 
