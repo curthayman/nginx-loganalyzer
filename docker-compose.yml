@@ -32,6 +32,7 @@ services:
       - STREAMLIT_SERVER_HEADLESS=true
       - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
       - MACHINE_TOKEN=${MACHINE_TOKEN}
+      - DEBUG=${DEBUG:-false}
 
     # Volumes for persistence
     volumes: &common-volumes # SSH keys for SFTP access to Pantheon (read-only)
