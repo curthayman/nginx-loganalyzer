@@ -91,7 +91,7 @@ if [ "$DEBUG" = "true" ]; then
     echo "--- Network Connectivity ---"
     echo "Testing DNS resolution for Pantheon:"
     if command -v dig >/dev/null 2>&1; then
-        dig +short appserver.dev.drush.in 2>&1 || echo "DNS lookup failed"
+        dig +short drush.in 2>&1 || echo "DNS lookup failed"
     else
         echo "dig command not available"
     fi
