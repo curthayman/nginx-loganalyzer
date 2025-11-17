@@ -73,6 +73,66 @@ pip install -r requirements.txt
     streamlit run main.py
     ```
 
+## Running with Docker
+
+You can run the Nginx Log Analyzer using Docker, which includes all dependencies (including goaccess).
+
+### Building the Docker Image
+
+```bash
+docker build -t nginx-loganalyzer .
+```
+
+### Running the Container
+
+**Basic run:**
+```bash
+docker run -p 8501:8501 nginx-loganalyzer
+```
+
+**With Terminus authentication and SSH access:**
+
+To use Pantheon/Terminus integration, you'll need to mount your Terminus configuration and SSH keys:
+
+```bash
+docker run -p 8501:8501 \
+  -v ~/.terminus:/root/.terminus:ro \
+  -v ~/.ssh:/root/.ssh:ro \
+  -v ~/site-logs:/root/site-logs \
+  nginx-loganalyzer
+```
+
+**Explanation of volume mounts:**
+- `-v ~/.terminus:/root/.terminus:ro` - Mounts your Terminus configuration (read-only)
+- `-v ~/.ssh:/root/.ssh:ro` - Mounts your SSH keys for SFTP access (read-only)
+- `-v ~/site-logs:/root/site-logs` - Mounts the logs directory (read-write) so logs persist
+
+### Accessing the Application
+
+Once the container is running, open your browser and navigate to:
+```
+http://localhost:8501
+```
+
+### Docker Notes
+
+- The Docker image includes `goaccess` pre-installed
+- Logs are stored in `~/site-logs` by default (mounted as a volume)
+- You must have Terminus CLI authenticated on your host machine before running
+- SSH keys must be properly configured for Pantheon SFTP access
+
+### Docker Hub
+
+This image is also available on Docker Hub:
+```bash
+docker pull curthayman/nginx-loganalyzer
+docker run -p 8501:8501 \
+  -v ~/.terminus:/root/.terminus:ro \
+  -v ~/.ssh:/root/.ssh:ro \
+  -v ~/site-logs:/root/site-logs \
+  curthayman/nginx-loganalyzer
+```
+
 ## In the sidebar:
 
 - Select a site and environment from the dropdowns.
