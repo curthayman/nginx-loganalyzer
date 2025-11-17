@@ -63,9 +63,9 @@ def collect_logs(site_uuid, env, site_name):
             process = subprocess.Popen(cmd, shell=True, cwd=server_dir, stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT, text=True)
             for line in process.stdout:
-                if "Warning: Permanently added" in line:
-                    continue
-                if "Connected to" in line or "Fetching" in line or "sftp>" in line or log in line or "100%" in line:
-                    yield f"[{server}] {line.strip()}"
+                # if "Warning: Permanently added" in line:
+                #     continue
+                # if "Connected to" in line or "Fetching" in line or "sftp>" in line or log in line or "100%" in line:
+                yield f"[{server}] {line.strip()}"
             process.wait()
             yield f"[{server}] Finished {log}"
