@@ -75,7 +75,13 @@ with st.sidebar:
         logs_dir_temp = os.path.expanduser(f"~/site-logs")
         if os.path.exists(logs_dir_temp):
             try:
-                shutil.rmtree(logs_dir_temp)
+                # Delete only the contents of the directory, not the directory itself
+                for item in os.listdir(logs_dir_temp):
+                    item_path = os.path.join(logs_dir_temp, item)
+                    if os.path.isfile(item_path):
+                        os.remove(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path)
                 st.success("Logs have been cleared successfully!")
                 if 'site_name' in st.session_state:
                     del st.session_state['site_name']
