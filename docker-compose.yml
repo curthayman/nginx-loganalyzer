@@ -32,6 +32,7 @@ services:
       - STREAMLIT_SERVER_HEADLESS=true
       - STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
       - MACHINE_TOKEN=${MACHINE_TOKEN}
+      - DEBUG=${DEBUG:-false}
 
     # Volumes for persistence
     volumes: &common-volumes # SSH keys for SFTP access to Pantheon (read-only)
@@ -57,16 +58,16 @@ services:
 
       # HTTP Router
       - "traefik.http.routers.nginx-loganalyzer.rule=Host(`${HOSTNAME}`)"
-      - "traefik.http.routers.nginx-loganalyzer.entrypoints=websecure"
+      - "traefik.http.routers.nginx-loganalyzer.entrypoints=https"
       - "traefik.http.routers.nginx-loganalyzer.tls=true"
-      - "traefik.http.routers.nginx-loganalyzer.tls.certresolver=${CERT_RESOLVER:-letsencrypt}"
+#      - "traefik.http.routers.nginx-loganalyzer.tls.certresolver=${CERT_RESOLVER:-letsencrypt}"
 
       # Service configuration
       - "traefik.http.services.nginx-loganalyzer.loadbalancer.server.port=8501"
 
       # Optional: HTTP to HTTPS redirect
       - "traefik.http.routers.nginx-loganalyzer-http.rule=Host(`${HOSTNAME}`)"
-      - "traefik.http.routers.nginx-loganalyzer-http.entrypoints=web"
+      - "traefik.http.routers.nginx-loganalyzer-http.entrypoints=https"
       - "traefik.http.routers.nginx-loganalyzer-http.middlewares=https-redirect"
 
       # HTTPS redirect middleware
@@ -130,7 +131,7 @@ services:
       - WATCHTOWER_MONITOR_ONLY=false # Automatic updates enabled
       # - WATCHTOWER_NOTIFICATIONS=log # Log-only notifications
       - WATCHTOWER_LABEL_ENABLE=true # Only monitor containers with label
-      - WATCHTOWER_KEEP_IMAGETAGS=5 # Keep last 5 image tags
+      - WATCHTOWER_KEEP_IMAGETAGS=2 # Keep last 2 image tags
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     networks:
@@ -138,12 +139,14 @@ services:
 
   # Watchtower - Automatic container updates (ECR profile)
   watchtower-ecr:
-    image: containrrr/watchtower:latest
+    image: shocking2k/watchtower-ecr:latest
     container_name: watchtower
     restart: unless-stopped
     profiles:
       - ecr
     environment:
+      - DOCKER_API_VERSION=1.52
+      - DOCKER_CONFIG=/config
       - WATCHTOWER_POLL_INTERVAL=600 # Check every 10 minutes (600 seconds)
       - WATCHTOWER_CLEANUP=true # Remove old images
       - WATCHTOWER_INCLUDE_STOPPED=false
@@ -159,6 +162,7 @@ services:
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker-config.json:/config/config.json:ro
       # Optional: Mount AWS credentials if not using env vars
       # - ~/.aws:/home/watchtower/.aws:ro
     networks:

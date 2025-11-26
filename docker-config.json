@@ -1,0 +1,9 @@
+{
+  "credsStore": "ecr-login",
+  "auths": {
+    "ACCOUNT_NUMBER.dkr.ecr.us-east-1.amazonaws.com": {}
+  },
+  "credHelpers": {
+    "ACCOUNT_NUMBER.dkr.ecr.us-east-1.amazonaws.com": "ecr-login"
+  }
+}
