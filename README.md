@@ -20,6 +20,23 @@
     - Detects potential SQL injection attempts.
     - Detects potential XSS attacks.
     - **AbuseIPDB Integration:** Check IPs with high error rates against the AbuseIPDB database.
+- **Performance Metrics:**
+    - Analyze response times (if logs include `$request_time`).
+    - Identify busiest and most problematic endpoints by error rate.
+    - Analyze bandwidth usage by file type.
+    - Analyze cache performance (hit/miss rates).
+    - Breakdown of HTTP methods used.
+    - Analyze traffic patterns over time (hourly, daily).
+    - Detailed status code distribution.
+    - Overall performance summary.
+- **WordPress Specific Analysis:**
+    - Detect installed plugins and themes.
+    - Monitor `wp-admin` access.
+    - Analyze `xmlrpc.php` activity for potential abuse.
+    - Detect `wp-login.php` brute force attempts.
+    - Identify various WordPress attack patterns (e.g., theme/plugin editor access, user enumeration, config file access, webshell probes).
+    - Detect potential update and maintenance windows.
+    - Analyze `wp-cron.php` activity.
 - **PHP Error Log Analysis:**
     - View and filter PHP errors by severity (Fatal Error, Warning, Info/Notice).
     - Dropdown filter for error type in the PHP Errors tab.
