@@ -421,7 +421,7 @@ if logs_dir and os.path.exists(logs_dir):
                 **What are Web Shell Probes?**
                 - Attackers scanning for backdoors/shells from previous compromises
                 - Common shells: ALFA, HOKI, WSO, c99, r57, b374k
-                - 404 status = Good (shell not found)
+                - 404 status or 403 = Good (shell not found)
                 - 200 status = CRITICAL (shell may exist - investigate immediately!)
                 """)
 
