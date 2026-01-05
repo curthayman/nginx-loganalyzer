@@ -72,6 +72,7 @@ See `requirements.txt`:
 ```
 streamlit
 pandas
+numpy
 plotly
 requests
 ```
